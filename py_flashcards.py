@@ -92,19 +92,18 @@ class Game:
         return deck
 
     def load_all_decks(self, decks_filedir, all_deck_names):
-        all_decks = []
+        all_decks = {}
         for idx, deck_name in enumerate(all_deck_names):
             deck_file_location = f"{decks_filedir}{deck_name}.csv"
             deck = self.read_in_deck(deck_file_location)
-            all_decks.append({deck_name: deck})
+            all_decks[deck_name] =  deck
         return all_decks
 
     def find_all_deck_sizes(self, all_decks):
         sizes = ["" for deck_name in all_decks]
         
-        for idx, deck_dict in enumerate(all_decks):
-            deck_name = list(deck_dict.keys())[0]
-            deck = deck_dict[deck_name]
+        for idx, deck_name in enumerate(all_decks):
+            deck = all_decks[deck_name]
             N_words = deck.shape[0]
             sizes[idx] = N_words
             
@@ -117,7 +116,8 @@ class Game:
         
         # set deck file location
         selected_deck_name = selected_deck_label.split(": ")[0]
-        self.selected_deck_file_location = f"{self.decks_filedir}{selected_deck_name}.csv"
+        self.selected_deck_name = selected_deck_name
+        #self.selected_deck_file_location = f"{self.decks_filedir}{selected_deck_name}.csv"
         
         # start proper gameplay
         self.main_gameplay()
@@ -132,9 +132,10 @@ class Game:
         self.show_buttons()
         self.link_buttons()
         
-        self.load_deck(self.selected_deck_file_location)
+        #self.load_deck(self.selected_deck_file_location)
+        self.load_deck(self.selected_deck_name)
         self.set_deck_status()
-        old_deck_status_file_location = self.gen_old_deck_status_file_location(self.selected_deck_file_location)
+        old_deck_status_file_location = self.gen_old_deck_status_file_location(self.selected_deck_name)
         self.load_old_deck_status(old_deck_status_file_location)
         
         self.draw_deck_status(self.deck_status, self.progress_bar_subfigure)
@@ -171,8 +172,11 @@ class Game:
         self.old_progress_bar_subfigure = old_progress_bar_subfigure
         
         
-    def load_deck(self, selected_deck_file_location):
-        self.loaded_deck = self.read_in_deck(selected_deck_file_location)
+    def load_deck(self, selected_deck_name):
+        all_decks = self.all_decks
+        self.loaded_deck = all_decks[selected_deck_name]
+        
+        #self.loaded_deck = self.read_in_deck(selected_deck_file_location)
         self.N_words = self.loaded_deck.shape[0]
         self.indexes = list(range(self.N_words)) # this will get popped from
         
@@ -186,18 +190,13 @@ class Game:
         self.deck_status = np.hstack((loaded_deck, blank_status[:, np.newaxis]))
 
 
-    def gen_old_deck_status_file_location(self, deck_file_location):
-        everything_but_slash = deck_file_location.split('/')
-        
-        file_name_and_type = everything_but_slash[-1]
-        file_name = file_name_and_type.split(".")[0]
-        
-        path_as_list = everything_but_slash[:-1]
-        path_as_list.append("..") # go up a dir
+    def gen_old_deck_status_file_location(self, selected_deck_name):
+        path_as_list = []
         path_as_list.append("reports") # currect dir
-        path_as_list.append(file_name + ".npy")
+        path_as_list.append(selected_deck_name + ".npy")
         
         old_deck_status_file_location = "/".join(path_as_list) # undo split
+        print(old_deck_status_file_location)
         return old_deck_status_file_location
 
     def load_old_deck_status(self, deck_status_location):
@@ -258,7 +257,7 @@ class Game:
     def select_next_index(self):
         if len(self.indexes) == 0:
             # game finished 
-            old_deck_status_file_location = self.gen_old_deck_status_file_location(self.selected_deck_file_location)
+            old_deck_status_file_location = self.gen_old_deck_status_file_location(self.selected_deck_name)
             self.save_deck_status(old_deck_status_file_location)
             plt.close()
             raise Exception("Finished Deck.")
