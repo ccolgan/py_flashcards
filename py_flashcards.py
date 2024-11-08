@@ -46,13 +46,23 @@ class Game:
         
     
     def deck_selector(self):
+        """First screen to select decks
+        
+        on_clicked the next screen shown is main_gameplay
+        """
         self.draw_frame()
         
         all_decks = self.find_decks(self.decks_filedir)
         
         all_deck_names = [name[:-4] for name in all_decks]
         
+        
+        # CHANGE HERE to load in all decks  
+        # then generate new ones based off of categories
+        # bad rpactice to store, just reuse load_deck method as more robust
         all_deck_sizes = self.find_deck_sizes(self.decks_filedir, all_decks)
+        
+        
         
         all_deck_names = [f"{deck_name}: {deck_size} words" for deck_name, deck_size 
                           in zip(all_deck_names, all_deck_sizes)]
@@ -90,7 +100,7 @@ class Game:
         
         # set deck file location
         selected_deck_name = selected_deck_label.split(": ")[0]
-        self.deck_file_location = f"{self.decks_filedir}{selected_deck_name}.csv"
+        self.selected_deck_file_location = f"{self.decks_filedir}{selected_deck_name}.csv"
         
         # start proper gameplay
         self.main_gameplay()
@@ -105,9 +115,9 @@ class Game:
         self.show_buttons()
         self.link_buttons()
         
-        self.load_deck(self.deck_file_location)
+        self.load_deck(self.selected_deck_file_location)
         self.set_deck_status()
-        old_deck_status_file_location = self.gen_old_deck_status_file_location(self.deck_file_location)
+        old_deck_status_file_location = self.gen_old_deck_status_file_location(self.selected_deck_file_location)
         self.load_old_deck_status(old_deck_status_file_location)
         
         self.draw_deck_status(self.deck_status, self.progress_bar_subfigure)
@@ -144,21 +154,21 @@ class Game:
         self.old_progress_bar_subfigure = old_progress_bar_subfigure
         
         
-    def load_deck(self, deck_file_location):
-        deck = pandas.read_csv(deck_file_location)
-        deck = deck.to_numpy(dtype=str)
-        self.deck = deck
-        self.N_words = deck.shape[0]
+    def load_deck(self, selected_deck_file_location):
+        selected_deck = pandas.read_csv(selected_deck_file_location)
+        selected_deck = selected_deck.to_numpy(dtype=str)
+        self.loaded_deck = selected_deck
+        self.N_words = selected_deck.shape[0]
         self.indexes = list(range(self.N_words)) # this will get popped from
-
+        
     def set_deck_status(self):
-        deck = np.copy(self.deck)
-        blank_status = np.array(['Skip'] * deck.shape[0])
+        loaded_deck = np.copy(self.loaded_deck)
+        blank_status = np.array(['Skip'] * loaded_deck.shape[0])
         
         # dummy test
         #blank_status[1] = 'Good'
         #blank_status[2] = 'Bad'
-        self.deck_status = np.hstack((deck, blank_status[:, np.newaxis]))
+        self.deck_status = np.hstack((loaded_deck, blank_status[:, np.newaxis]))
 
 
     def gen_old_deck_status_file_location(self, deck_file_location):
@@ -233,7 +243,7 @@ class Game:
     def select_next_index(self):
         if len(self.indexes) == 0:
             # game finished 
-            old_deck_status_file_location = self.gen_old_deck_status_file_location(self.deck_file_location)
+            old_deck_status_file_location = self.gen_old_deck_status_file_location(self.selected_deck_file_location)
             self.save_deck_status(old_deck_status_file_location)
             plt.close()
             raise Exception("Finished Deck.")
@@ -242,7 +252,7 @@ class Game:
         next_term = np.random.choice(range(len(self.indexes)))
         self.curr_idx = self.indexes[next_term]
         self.indexes.pop(next_term)
-        self.curr_word = self.deck[self.curr_idx, :][self.question_answer_idx] 
+        self.curr_word = self.loaded_deck[self.curr_idx, :][self.question_answer_idx] 
 
     
     def display_current_word(self):
@@ -259,7 +269,7 @@ class Game:
     
     def swap_question_answer_current_word(self):
         self.question_answer_idx = abs(self.question_answer_idx - 1)
-        self.curr_word = self.deck[self.curr_idx, :][self.question_answer_idx] 
+        self.curr_word = self.loaded_deck[self.curr_idx, :][self.question_answer_idx] 
 
         
     def choose_next_index_and_update_deck_status_and_display(self, event):      
