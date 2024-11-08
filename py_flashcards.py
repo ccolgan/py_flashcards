@@ -52,25 +52,28 @@ class Game:
         """
         self.draw_frame()
         
-        all_decks = self.find_decks(self.decks_filedir)
+        all_deck_files = self.find_decks(self.decks_filedir)
         
-        all_deck_names = [name[:-4] for name in all_decks]
+        all_deck_names = [name[:-4] for name in all_deck_files]
         
         
         # CHANGE HERE to load in all decks  
         # then generate new ones based off of categories
-        # bad rpactice to store, just reuse load_deck method as more robust
-        all_deck_sizes = self.find_deck_sizes(self.decks_filedir, all_decks)
+        # bad rpactice to store, but needed as creating new decks
+        self.all_decks = self.load_all_decks(self.decks_filedir, all_deck_names)    
         
+        # make new decks
         
+        # find all deck sizes
+        all_deck_sizes = self.find_all_deck_sizes(self.all_decks)
         
-        all_deck_names = [f"{deck_name}: {deck_size} words" for deck_name, deck_size 
+        all_deck_names_to_display = [f"{deck_name}: {deck_size} words" for deck_name, deck_size 
                           in zip(all_deck_names, all_deck_sizes)]
         
         selector_axes = plt.axes([0.1, 0.1, 0.8, 0.8])
         self.selector_axes = selector_axes
         radio_button = RadioButtons(selector_axes,
-                                    labels = all_deck_names,
+                                    labels = all_deck_names_to_display,
                                     active = None)
         
         self.radio_button = radio_button       
@@ -87,14 +90,21 @@ class Game:
         deck = pandas.read_csv(deck_file_location)
         deck = deck.to_numpy(dtype=str)
         return deck
-        
-    
-    def find_deck_sizes(self, decks_filedir, all_decks):
-        sizes = ["" for deck in all_decks]
-        
-        for idx, deck in enumerate(all_decks):
-            deck_file_location = f"{decks_filedir}{deck}"
+
+    def load_all_decks(self, decks_filedir, all_deck_names):
+        all_decks = []
+        for idx, deck_name in enumerate(all_deck_names):
+            deck_file_location = f"{decks_filedir}{deck_name}.csv"
             deck = self.read_in_deck(deck_file_location)
+            all_decks.append({deck_name: deck})
+        return all_decks
+
+    def find_all_deck_sizes(self, all_decks):
+        sizes = ["" for deck_name in all_decks]
+        
+        for idx, deck_dict in enumerate(all_decks):
+            deck_name = list(deck_dict.keys())[0]
+            deck = deck_dict[deck_name]
             N_words = deck.shape[0]
             sizes[idx] = N_words
             
