@@ -81,13 +81,20 @@ class Game:
         all_decks = [name for name in all_files_and_dirs if name[-4:] == ".csv"]
         return all_decks
     
+    def read_in_deck(self, deck_file_location):
+        """Read in any deck .csv file and return as np.ndarray
+        """
+        deck = pandas.read_csv(deck_file_location)
+        deck = deck.to_numpy(dtype=str)
+        return deck
+        
+    
     def find_deck_sizes(self, decks_filedir, all_decks):
         sizes = ["" for deck in all_decks]
         
         for idx, deck in enumerate(all_decks):
             deck_file_location = f"{decks_filedir}{deck}"
-            deck = pandas.read_csv(deck_file_location)
-            deck = deck.to_numpy(dtype=str)
+            deck = self.read_in_deck(deck_file_location)
             N_words = deck.shape[0]
             sizes[idx] = N_words
             
@@ -155,10 +162,8 @@ class Game:
         
         
     def load_deck(self, selected_deck_file_location):
-        selected_deck = pandas.read_csv(selected_deck_file_location)
-        selected_deck = selected_deck.to_numpy(dtype=str)
-        self.loaded_deck = selected_deck
-        self.N_words = selected_deck.shape[0]
+        self.loaded_deck = self.read_in_deck(selected_deck_file_location)
+        self.N_words = self.loaded_deck.shape[0]
         self.indexes = list(range(self.N_words)) # this will get popped from
         
     def set_deck_status(self):
