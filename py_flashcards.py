@@ -63,8 +63,10 @@ class Game:
         self.all_decks = self.load_all_decks(self.decks_filedir, all_deck_names)    
         
         # make new decks
+        self.make_new_decks_from_all_decks_types()
         
         # find all deck sizes
+        all_deck_names = [name for name in self.all_decks]
         all_deck_sizes = self.find_all_deck_sizes(self.all_decks)
         
         all_deck_names_to_display = [f"{deck_name}: {deck_size} words" for deck_name, deck_size 
@@ -78,7 +80,8 @@ class Game:
         
         self.radio_button = radio_button       
         self.radio_button.on_clicked(self.clear_and_start_game)
-    
+        
+        
     def find_decks(self, filedir):
         all_files_and_dirs = os.listdir(filedir)
         all_decks = [name for name in all_files_and_dirs if name[-4:] == ".csv"]
@@ -108,7 +111,20 @@ class Game:
             sizes[idx] = N_words
             
         return sizes
-     
+    
+    def make_new_decks_from_all_decks_types(self):
+        all_words = np.empty((0, 3), dtype=str)
+        for deck_name in self.all_decks:
+            deck = self.all_decks[deck_name]
+            all_words = np.append(all_words, deck, axis=0)        
+        all_unique_types = np.unique(all_words[:, -1])
+        
+        for unique_type in all_unique_types:
+            if unique_type != "nan":
+                matching_type_array = all_words[:,-1] == unique_type
+                new_deck = all_words[matching_type_array, :]
+                self.all_decks[unique_type] = new_deck
+    
     def clear_and_start_game(self, selected_deck_label):
         # clear axes
         self.fig.clear()
@@ -196,7 +212,6 @@ class Game:
         path_as_list.append(selected_deck_name + ".npy")
         
         old_deck_status_file_location = "/".join(path_as_list) # undo split
-        print(old_deck_status_file_location)
         return old_deck_status_file_location
 
     def load_old_deck_status(self, deck_status_location):
