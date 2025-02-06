@@ -46,43 +46,85 @@ class Game:
         
     
     def deck_selector(self):
+        """First screen to select decks
+        
+        on_clicked the next screen shown is main_gameplay
+        """
         self.draw_frame()
         
-        all_decks = self.find_decks(self.decks_filedir)
+        all_deck_files = self.find_decks(self.decks_filedir)
         
-        all_deck_names = [name[:-4] for name in all_decks]
+        all_deck_names = [name[:-4] for name in all_deck_files]
         
-        all_deck_sizes = self.find_deck_sizes(self.decks_filedir, all_decks)
         
-        all_deck_names = [f"{deck_name}: {deck_size} words" for deck_name, deck_size 
+        # CHANGE HERE to load in all decks  
+        # then generate new ones based off of categories
+        # bad rpactice to store, but needed as creating new decks
+        self.all_decks = self.load_all_decks(self.decks_filedir, all_deck_names)    
+        
+        # make new decks
+        self.make_new_decks_from_all_decks_types()
+        
+        # find all deck sizes
+        all_deck_names = [name for name in self.all_decks]
+        all_deck_sizes = self.find_all_deck_sizes(self.all_decks)
+        
+        all_deck_names_to_display = [f"{deck_name}: {deck_size} words" for deck_name, deck_size 
                           in zip(all_deck_names, all_deck_sizes)]
         
         selector_axes = plt.axes([0.1, 0.1, 0.8, 0.8])
         self.selector_axes = selector_axes
         radio_button = RadioButtons(selector_axes,
-                                    labels = all_deck_names,
+                                    labels = all_deck_names_to_display,
                                     active = None)
         
         self.radio_button = radio_button       
         self.radio_button.on_clicked(self.clear_and_start_game)
-    
+        
+        
     def find_decks(self, filedir):
         all_files_and_dirs = os.listdir(filedir)
         all_decks = [name for name in all_files_and_dirs if name[-4:] == ".csv"]
         return all_decks
     
-    def find_deck_sizes(self, decks_filedir, all_decks):
-        sizes = ["" for deck in all_decks]
+    def read_in_deck(self, deck_file_location):
+        """Read in any deck .csv file and return as np.ndarray
+        """
+        deck = pandas.read_csv(deck_file_location)
+        deck = deck.to_numpy(dtype=str)
+        return deck
+
+    def load_all_decks(self, decks_filedir, all_deck_names):
+        all_decks = {}
+        for idx, deck_name in enumerate(all_deck_names):
+            deck_file_location = f"{decks_filedir}{deck_name}.csv"
+            deck = self.read_in_deck(deck_file_location)
+            all_decks[deck_name] =  deck
+        return all_decks
+
+    def find_all_deck_sizes(self, all_decks):
+        sizes = ["" for deck_name in all_decks]
         
-        for idx, deck in enumerate(all_decks):
-            deck_file_location = f"{decks_filedir}{deck}"
-            deck = pandas.read_csv(deck_file_location)
-            deck = deck.to_numpy(dtype=str)
+        for idx, deck_name in enumerate(all_decks):
+            deck = all_decks[deck_name]
             N_words = deck.shape[0]
             sizes[idx] = N_words
             
         return sizes
-     
+    
+    def make_new_decks_from_all_decks_types(self):
+        all_words = np.empty((0, 3), dtype=str)
+        for deck_name in self.all_decks:
+            deck = self.all_decks[deck_name]
+            all_words = np.append(all_words, deck, axis=0)        
+        all_unique_types = np.unique(all_words[:, -1])
+        
+        for unique_type in all_unique_types:
+            if unique_type != "nan":
+                matching_type_array = all_words[:,-1] == unique_type
+                new_deck = all_words[matching_type_array, :]
+                self.all_decks[unique_type] = new_deck
+    
     def clear_and_start_game(self, selected_deck_label):
         # clear axes
         self.fig.clear()
@@ -90,7 +132,8 @@ class Game:
         
         # set deck file location
         selected_deck_name = selected_deck_label.split(": ")[0]
-        self.deck_file_location = f"{self.decks_filedir}{selected_deck_name}.csv"
+        self.selected_deck_name = selected_deck_name
+        #self.selected_deck_file_location = f"{self.decks_filedir}{selected_deck_name}.csv"
         
         # start proper gameplay
         self.main_gameplay()
@@ -105,9 +148,10 @@ class Game:
         self.show_buttons()
         self.link_buttons()
         
-        self.load_deck(self.deck_file_location)
+        #self.load_deck(self.selected_deck_file_location)
+        self.load_deck(self.selected_deck_name)
         self.set_deck_status()
-        old_deck_status_file_location = self.gen_old_deck_status_file_location(self.deck_file_location)
+        old_deck_status_file_location = self.gen_old_deck_status_file_location(self.selected_deck_name)
         self.load_old_deck_status(old_deck_status_file_location)
         
         self.draw_deck_status(self.deck_status, self.progress_bar_subfigure)
@@ -144,33 +188,28 @@ class Game:
         self.old_progress_bar_subfigure = old_progress_bar_subfigure
         
         
-    def load_deck(self, deck_file_location):
-        deck = pandas.read_csv(deck_file_location)
-        deck = deck.to_numpy(dtype=str)
-        self.deck = deck
-        self.N_words = deck.shape[0]
+    def load_deck(self, selected_deck_name):
+        all_decks = self.all_decks
+        self.loaded_deck = all_decks[selected_deck_name]
+        
+        #self.loaded_deck = self.read_in_deck(selected_deck_file_location)
+        self.N_words = self.loaded_deck.shape[0]
         self.indexes = list(range(self.N_words)) # this will get popped from
-
+        
     def set_deck_status(self):
-        deck = np.copy(self.deck)
-        blank_status = np.array(['Skip'] * deck.shape[0])
+        loaded_deck = np.copy(self.loaded_deck)
+        blank_status = np.array(['Skip'] * loaded_deck.shape[0])
         
         # dummy test
         #blank_status[1] = 'Good'
         #blank_status[2] = 'Bad'
-        self.deck_status = np.hstack((deck, blank_status[:, np.newaxis]))
+        self.deck_status = np.hstack((loaded_deck, blank_status[:, np.newaxis]))
 
 
-    def gen_old_deck_status_file_location(self, deck_file_location):
-        everything_but_slash = deck_file_location.split('/')
-        
-        file_name_and_type = everything_but_slash[-1]
-        file_name = file_name_and_type.split(".")[0]
-        
-        path_as_list = everything_but_slash[:-1]
-        path_as_list.append("..") # go up a dir
+    def gen_old_deck_status_file_location(self, selected_deck_name):
+        path_as_list = []
         path_as_list.append("reports") # currect dir
-        path_as_list.append(file_name + ".npy")
+        path_as_list.append(selected_deck_name + ".npy")
         
         old_deck_status_file_location = "/".join(path_as_list) # undo split
         return old_deck_status_file_location
@@ -233,7 +272,7 @@ class Game:
     def select_next_index(self):
         if len(self.indexes) == 0:
             # game finished 
-            old_deck_status_file_location = self.gen_old_deck_status_file_location(self.deck_file_location)
+            old_deck_status_file_location = self.gen_old_deck_status_file_location(self.selected_deck_name)
             self.save_deck_status(old_deck_status_file_location)
             plt.close()
             raise Exception("Finished Deck.")
@@ -242,7 +281,7 @@ class Game:
         next_term = np.random.choice(range(len(self.indexes)))
         self.curr_idx = self.indexes[next_term]
         self.indexes.pop(next_term)
-        self.curr_word = self.deck[self.curr_idx, :][self.question_answer_idx] 
+        self.curr_word = self.loaded_deck[self.curr_idx, :][self.question_answer_idx] 
 
     
     def display_current_word(self):
@@ -259,7 +298,7 @@ class Game:
     
     def swap_question_answer_current_word(self):
         self.question_answer_idx = abs(self.question_answer_idx - 1)
-        self.curr_word = self.deck[self.curr_idx, :][self.question_answer_idx] 
+        self.curr_word = self.loaded_deck[self.curr_idx, :][self.question_answer_idx] 
 
         
     def choose_next_index_and_update_deck_status_and_display(self, event):      
