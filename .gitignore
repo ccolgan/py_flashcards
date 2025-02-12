@@ -1,5 +1,5 @@
-*/reports/*
-!/reports/example.npy
+*reports/*
+!*reports/example.npy
 
 *DS_Store
 
