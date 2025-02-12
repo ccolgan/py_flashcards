@@ -9,7 +9,7 @@ const endpoint =
   //"https://gist.githubusercontent.com/cahdeemer/90a32410656e2aa33d29b694bc28ab08/raw/4c7ae385f4f1c1ec7c42ef0154f927ace3d3f12e/interview_prep.json";
   //"https://raw.githubusercontent.com/ccolgan/py_flashcards/refs/heads/main/docs/interview_prep.json";
   //"https://raw.githubusercontent.com/ccolgan/py_flashcards/main/docs/interview_prep.csv";
-  "https://raw.githubusercontent.com/ccolgan/py_flashcards/main/python/decks/example.csv";
+  "https://raw.githubusercontent.com/ccolgan/py_flashcards/main/decks/example.csv";
   const questions = [];
 
 let current = 0;
