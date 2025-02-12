@@ -15,7 +15,7 @@ import os
 
 class Game:
     def __init__(self, 
-                 decks_filedir = "./decks/",
+                 decks_filedir = "../decks/",
                  #deck_file_location = './decks/test.csv',
                  #deck_file_location = './decks/intermedio_1_vocab.csv',
                  ):
@@ -208,7 +208,7 @@ class Game:
 
     def gen_old_deck_status_file_location(self, selected_deck_name):
         path_as_list = []
-        path_as_list.append("reports") # currect dir
+        path_as_list.append("../reports") # currect dir
         path_as_list.append(selected_deck_name + ".npy")
         
         old_deck_status_file_location = "/".join(path_as_list) # undo split
