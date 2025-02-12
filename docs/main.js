@@ -6,12 +6,16 @@ const next = document.querySelector("#next");
 const prev = document.querySelector("#prev");
 const count = document.querySelector("#count");
 const endpoint =
-  "https://gist.githubusercontent.com/cahdeemer/90a32410656e2aa33d29b694bc28ab08/raw/4c7ae385f4f1c1ec7c42ef0154f927ace3d3f12e/interview_prep.json";
-const questions = [];
+  //"https://gist.githubusercontent.com/cahdeemer/90a32410656e2aa33d29b694bc28ab08/raw/4c7ae385f4f1c1ec7c42ef0154f927ace3d3f12e/interview_prep.json";
+  //"https://raw.githubusercontent.com/ccolgan/py_flashcards/refs/heads/main/docs/interview_prep.json";
+  //"https://raw.githubusercontent.com/ccolgan/py_flashcards/main/docs/interview_prep.csv";
+  "https://raw.githubusercontent.com/ccolgan/py_flashcards/main/python/decks/example.csv";
+  const questions = [];
 
 let current = 0;
 let turned = false;
 
+/*
 //remember that fetch doesn't return the data, fetch returns a promise
 fetch(endpoint)
   //blog.json also returns a promise
@@ -20,6 +24,42 @@ fetch(endpoint)
   .then(data => questions.push(...data))
   //we set the initial state after data is ready
   .then(populateNextCard);
+*/
+
+// Fetch and parse CSV instead of JSON
+fetch(endpoint)
+  .then(response => response.text()) // Fetch CSV as text
+  .then(csvText => csvToJson(csvText)) // Convert to JSON-like format
+  .then(data => {
+    questions.push(...data); // Store parsed data
+    populateNextCard(); // Start the flashcard UI
+  })
+  .catch(error => console.error("Error fetching CSV:", error));
+
+  function csvToJson(csv) {
+    const rows = csv.trim().split("\n"); // Split by new lines
+    const headers = rows[0].match(/"([^"]*)"/g).map(h => h.replace(/"/g, "")); // Extract headers
+    console.log("CSV Headers:", headers); // Debug: Log headers
+  
+    // Now, let's check for each row and see what values are coming in.
+    const data = rows.slice(1).map(row => {
+      const values = row.match(/"([^"]*)"/g).map(v => v.replace(/"/g, "")); // Extract row values
+      console.log("Row Values:", values); // Debug: Log row values
+      
+      // Map the columns correctly: 'Español' becomes 'question', 'English' becomes 'answer', 'Type' becomes 'cat'
+      const obj = {
+        question: values[headers.indexOf("Español")],  // 'Español' is the question
+        answer: values[headers.indexOf("English")],   // 'English' is the answer
+        cat: values[headers.indexOf("Type")]           // 'Type' is the category (or 'cat')
+      };
+      
+      console.log("Mapped Row Object:", obj); // Debug: Log the mapped row object
+      
+      return obj;
+    });
+    
+    return data;
+  }
 
 function resetCard() {
   prev.disabled = false;
